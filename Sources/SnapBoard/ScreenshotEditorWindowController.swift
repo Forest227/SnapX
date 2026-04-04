@@ -100,6 +100,11 @@ final class ScreenshotEditorWindowController: NSWindowController, NSWindowDelega
                 return nil
             }
 
+            if event.keyCode == UInt16(kVK_Return) {
+                self.completeEditing()
+                return nil
+            }
+
             let commandFlags: NSEvent.ModifierFlags = [.command]
             if event.modifierFlags.intersection(.deviceIndependentFlagsMask) == commandFlags,
                event.charactersIgnoringModifiers?.lowercased() == "z" {

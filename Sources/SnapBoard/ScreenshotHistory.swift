@@ -13,7 +13,7 @@ final class ScreenshotHistory: ObservableObject {
 
     @Published private(set) var items: [HistoryItem] = []
 
-    private let maxCount = 50
+    private let maxCount = 100
 
     private init() {}
 

@@ -14,6 +14,7 @@ enum ScreenCapturePermissionStatus {
 final class AppState: ObservableObject {
     @Published private(set) var framedHotKeyConfiguration: HotKeyConfiguration
     @Published private(set) var displayHotKeyConfiguration: HotKeyConfiguration
+    @Published private(set) var historyHotKeyConfiguration: HotKeyConfiguration
     @Published private(set) var permissionStatus: ScreenCapturePermissionStatus = .needsPermission
     @Published private(set) var isAccessibilityPermissionGranted = false
     @Published private(set) var pinnedCount = 0
@@ -40,6 +41,7 @@ final class AppState: ObservableObject {
     init() {
         framedHotKeyConfiguration = Self.loadHotKeyConfiguration(for: .framed)
         displayHotKeyConfiguration = Self.loadHotKeyConfiguration(for: .display)
+        historyHotKeyConfiguration = Self.loadHotKeyConfiguration(for: .history)
         currentTheme = ThemeManager.shared.currentTheme
     }
 
@@ -49,6 +51,10 @@ final class AppState: ObservableObject {
 
     var displayHotKeyDisplay: String {
         displayHotKeyConfiguration.displayString
+    }
+
+    var historyHotKeyDisplay: String {
+        historyHotKeyConfiguration.displayString
     }
 
     var hotKeySummaryDisplay: String {
@@ -173,6 +179,10 @@ final class AppState: ObservableObject {
         captureCoordinator.closeAllPinnedWindows()
     }
 
+    func pinImage(_ image: NSImage) {
+        captureCoordinator.pinImage(image)
+    }
+
     func updatePinOpacity(_ opacity: Double) {
         let normalizedOpacity = min(max(opacity, 0.25), 1)
         guard abs(pinOpacity - normalizedOpacity) > 0.001 else { return }
@@ -286,8 +296,8 @@ final class AppState: ObservableObject {
             throw HotKeyConfigurationError.unsupportedKey
         }
 
-        let otherAction = CaptureShortcutAction.allCases.first { $0 != action }
-        if let otherAction, hotKeyConfiguration(for: otherAction) == configuration {
+        let otherAction = CaptureShortcutAction.allCases.first { $0 != action && hotKeyConfiguration(for: $0) == configuration }
+        if let otherAction {
             throw HotKeyConfigurationError.duplicateShortcut(actionTitle: otherAction.title)
         }
 
@@ -306,6 +316,8 @@ final class AppState: ObservableObject {
             framedHotKeyConfiguration
         case .display:
             displayHotKeyConfiguration
+        case .history:
+            historyHotKeyConfiguration
         }
     }
 
@@ -320,6 +332,7 @@ final class AppState: ObservableObject {
         let definitions: [(CaptureShortcutAction, HotKeyConfiguration, @MainActor () -> Void)] = [
             (.framed, framedHotKeyConfiguration, startFramedCapture),
             (.display, displayHotKeyConfiguration, startDisplayCapture),
+            (.history, historyHotKeyConfiguration, openHistory),
         ]
 
         hotKeyMonitors = definitions.map { shortcutAction, configuration, action in
@@ -361,6 +374,8 @@ final class AppState: ObservableObject {
             framedHotKeyConfiguration = configuration
         case .display:
             displayHotKeyConfiguration = configuration
+        case .history:
+            historyHotKeyConfiguration = configuration
         }
     }
 

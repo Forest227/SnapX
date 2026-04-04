@@ -121,6 +121,13 @@ struct SettingsView: View {
                 onSave: { try appState.updateHotKey(for: .display, configuration: $0) },
                 onReset: { try appState.resetHotKey(for: .display) }
             )
+
+            HotKeyEditorCard(
+                action: .history,
+                currentConfiguration: appState.historyHotKeyConfiguration,
+                onSave: { try appState.updateHotKey(for: .history, configuration: $0) },
+                onReset: { try appState.resetHotKey(for: .history) }
+            )
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)

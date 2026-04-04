@@ -111,18 +111,21 @@ struct MenuBarContentView: View {
             }
             .buttonStyle(.bordered)
 
+            Button(action: appState.openHistory) {
+                actionLabel(
+                    title: "截图历史",
+                    shortcut: appState.historyHotKeyDisplay,
+                    systemImage: "clock.arrow.circlepath"
+                )
+            }
+            .buttonStyle(.bordered)
+
             Button(action: appState.clearPinnedShots) {
                 Label("清空所有钉图", systemImage: "rectangle.stack.badge.minus")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
             .disabled(appState.pinnedCount == 0)
-
-            Button(action: appState.openHistory) {
-                Label("截图历史", systemImage: "clock.arrow.circlepath")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderless)
 
             Button(action: appState.openSettings) {
                 Label("设置", systemImage: "gearshape")

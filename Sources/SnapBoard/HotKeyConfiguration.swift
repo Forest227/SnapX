@@ -4,6 +4,7 @@ import Foundation
 enum CaptureShortcutAction: String, CaseIterable, Identifiable {
     case framed
     case display
+    case history
 
     var id: String { rawValue }
 
@@ -13,6 +14,8 @@ enum CaptureShortcutAction: String, CaseIterable, Identifiable {
             "框选截图"
         case .display:
             "全屏截图"
+        case .history:
+            "截图历史"
         }
     }
 
@@ -26,6 +29,8 @@ enum CaptureShortcutAction: String, CaseIterable, Identifiable {
             1
         case .display:
             2
+        case .history:
+            3
         }
     }
 
@@ -35,6 +40,8 @@ enum CaptureShortcutAction: String, CaseIterable, Identifiable {
             HotKeyConfiguration(keyCode: UInt32(kVK_ANSI_S), modifiers: [.command, .shift])
         case .display:
             HotKeyConfiguration(keyCode: UInt32(kVK_ANSI_F), modifiers: [.command, .shift])
+        case .history:
+            HotKeyConfiguration(keyCode: UInt32(kVK_ANSI_H), modifiers: [.command, .shift])
         }
     }
 
@@ -44,6 +51,8 @@ enum CaptureShortcutAction: String, CaseIterable, Identifiable {
             HotKeyConfiguration(keyCode: UInt32(kVK_ANSI_S), modifiers: [.control, .option])
         case .display:
             HotKeyConfiguration(keyCode: UInt32(kVK_ANSI_F), modifiers: [.control, .option])
+        case .history:
+            HotKeyConfiguration(keyCode: UInt32(kVK_ANSI_H), modifiers: [.control, .option])
         }
     }
 }

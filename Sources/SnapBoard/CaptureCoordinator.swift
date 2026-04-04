@@ -137,6 +137,10 @@ final class CaptureCoordinator {
         windows.forEach { $0.close() }
     }
 
+    func pinImage(_ image: NSImage) {
+        presentPinnedWindow(for: image)
+    }
+
     func updatePinnedWindowOpacity(_ opacity: Double) {
         pinnedWindowOpacity = min(max(opacity, 0.25), 1)
         pinnedWindowControllers.forEach { $0.setWindowOpacity(pinnedWindowOpacity) }
@@ -181,7 +185,6 @@ final class CaptureCoordinator {
     }
 
     private func presentCapturedImage(_ image: NSImage, request: ScreenshotCaptureRequest) {
-        ScreenshotHistory.shared.add(image)
         let sourceRect = editorSourceRect(for: request)
         presentCapturedImage(image, sourceRect: sourceRect)
     }
@@ -197,6 +200,7 @@ final class CaptureCoordinator {
                 self?.presentPinnedWindow(for: editedImage)
             },
             onCopy: { [weak self] editedImage in
+                ScreenshotHistory.shared.add(image)
                 self?.copyToPasteboard(editedImage)
             },
             onClose: { [weak self] in
