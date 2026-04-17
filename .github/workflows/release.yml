@@ -16,6 +16,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install Swift 6.2
+        run: |
+          curl -fLo swift.pkg "https://download.swift.org/swift-6.2-release/xcode/swift-6.2-RELEASE/swift-6.2-RELEASE-osx.pkg"
+          sudo installer -pkg swift.pkg -target /
+          export TOOLCHAINS=$(plutil -extract CFBundleIdentifier raw /Library/Developer/Toolchains/swift-6.2-RELEASE.xctoolchain/Info.plist)
+          echo "TOOLCHAINS=$TOOLCHAINS" >> "$GITHUB_ENV"
+          swift --version
+
       - name: Extract version from tag
         id: version
         run: |
