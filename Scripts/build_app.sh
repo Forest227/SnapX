@@ -30,10 +30,9 @@ cp "$INFO_PLIST_TEMPLATE" "$CONTENTS_DIR/Info.plist"
 if [[ -f "$APP_ICON" ]]; then
   cp "$APP_ICON" "$RESOURCES_DIR/AppIcon.icns"
 fi
-CAPTURE_SOUND="$PROJECT_ROOT/Packaging/capture.wav"
-if [[ -f "$CAPTURE_SOUND" ]]; then
-  cp "$CAPTURE_SOUND" "$RESOURCES_DIR/capture.wav"
-fi
+for wav in "$PROJECT_ROOT/Packaging/"*.wav; do
+  [[ -f "$wav" ]] && cp "$wav" "$RESOURCES_DIR/"
+done
 chmod +x "$MACOS_DIR/$APP_NAME"
 
 SIGN_IDENTITY="SnapX Dev"

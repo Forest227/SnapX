@@ -105,6 +105,10 @@ final class CaptureCoordinator {
         guard let url = Bundle.main.url(forResource: "capture", withExtension: "wav") else { return nil }
         return NSSound(contentsOf: url, byReference: true)
     }()
+    private lazy var selectCaptureSound: NSSound? = {
+        guard let url = Bundle.main.url(forResource: "select_capture", withExtension: "wav") else { return nil }
+        return NSSound(contentsOf: url, byReference: true)
+    }()
 
     var hasScreenCapturePermission: Bool {
         CGPreflightScreenCaptureAccess()
@@ -144,7 +148,11 @@ final class CaptureCoordinator {
     private func beginSelectionMode(for mode: CaptureSelectionMode) {
         guard overlayWindowControllers.isEmpty else { return }
 
-        captureSound?.play()
+        if captureTimingMode == .freezeFirst {
+            captureSound?.play()
+        } else {
+            selectCaptureSound?.play()
+        }
 
         // In freeze-first mode, capture all screens before showing overlay
         frozenScreenImages = [:]
