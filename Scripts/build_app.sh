@@ -42,6 +42,9 @@ fi
 
 chmod +x "$MACOS_DIR/$APP_NAME"
 
+# Add rpath so the executable can find frameworks in Contents/Frameworks
+install_name_tool -add_rpath @loader_path/../Frameworks "$MACOS_DIR/$APP_NAME" 2>/dev/null || true
+
 SIGN_IDENTITY="SnapX Dev"
 if security find-identity -v -p codesigning | grep -q "$SIGN_IDENTITY"; then
   codesign --force --sign "$SIGN_IDENTITY" "$APP_BUNDLE" >/dev/null
