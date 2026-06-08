@@ -105,7 +105,7 @@ jobs:
         run: |
           TAG="${{ steps.version.outputs.tag }}"
           VERSION="${{ steps.version.outputs.version }}"
-          BUILD_NUM=$(echo "$VERSION" | awk -F. '{print $3}')
+          BUILD_NUM=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" Packaging/SnapX-Info.plist)
           UNIVERSAL_DMG="Build/SnapX-${TAG}-universal.dmg"
           DMG_SIZE=$(stat -f%z "$UNIVERSAL_DMG" 2>/dev/null || echo "0")
           SIG="PLACEHOLDER_SIGNATURE"
