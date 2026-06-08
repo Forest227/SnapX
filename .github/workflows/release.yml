@@ -40,45 +40,59 @@ jobs:
           BUILD_NUM=$(echo "$VERSION" | awk -F. '{print $3}')
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUM:-1}" "$PLIST"
 
-      - name: Build and package .app bundle (Universal Binary)
-        run: bash Scripts/build_app.sh
+      - name: Build arm64
+        run: bash Scripts/build_app.sh arm64
 
-      - name: Create DMG
-        run: |
-          DMG_NAME="SnapX-${{ steps.version.outputs.tag }}.dmg"
-          mkdir -p dmg_staging
-          cp -R Build/SnapX.app dmg_staging/
-          ln -s /Applications dmg_staging/Applications
-          cp Packaging/DMG-README.txt dmg_staging/
-          hdiutil create -volname "SnapX" \
-            -srcfolder dmg_staging \
-            -ov -format UDZO \
-            "Build/$DMG_NAME"
-          echo "dmg_name=$DMG_NAME" >> "$GITHUB_OUTPUT"
-        id: dmg
+      - name: Build x86_64
+        run: bash Scripts/build_app.sh x86_64
 
-      - name: Create ZIP
+      - name: Build universal
+        run: bash Scripts/build_app.sh universal
+
+      - name: Create DMGs and ZIPs
+        id: artifacts
         run: |
-          cd Build
-          ZIP_NAME="SnapX-${{ steps.version.outputs.tag }}.zip"
-          ditto -c -k --keepParent SnapX.app "$ZIP_NAME"
-          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
-        id: zip
+          TAG="${{ steps.version.outputs.tag }}"
+          OUTPUTS=""
+
+          for ARCH in arm64 x86_64 universal; do
+            APP="Build/SnapX-${ARCH}.app"
+            DMG="Build/SnapX-${TAG}-${ARCH}.dmg"
+            ZIP="Build/SnapX-${TAG}-${ARCH}.zip"
+
+            # Create DMG
+            STAGING="dmg_staging_${ARCH}"
+            rm -rf "$STAGING"
+            mkdir -p "$STAGING"
+            cp -R "$APP" "$STAGING/SnapX.app"
+            ln -s /Applications "$STAGING/Applications"
+            [[ -f Packaging/DMG-README.txt ]] && cp Packaging/DMG-README.txt "$STAGING/"
+            hdiutil create -volname "SnapX" \
+              -srcfolder "$STAGING" \
+              -ov -format UDZO \
+              "$DMG"
+
+            # Create ZIP
+            cd Build
+            ditto -c -k --keepParent "SnapX-${ARCH}.app" "SnapX-${TAG}-${ARCH}.zip"
+            cd ..
+
+            OUTPUTS="${OUTPUTS} ${DMG} ${ZIP}"
+          done
+
+          echo "files=${OUTPUTS}" >> "$GITHUB_OUTPUT"
 
       - name: Generate changelog
         id: changelog
         run: |
           TAG="${{ steps.version.outputs.tag }}"
-          # Find previous tag
           PREV_TAG=$(git tag --sort=-v:refname | grep -A1 "^${TAG}$" | tail -1)
           if [ "$PREV_TAG" = "$TAG" ] || [ -z "$PREV_TAG" ]; then
-            # No previous tag, use all commits
             COMMITS=$(git log --pretty=format:"- %s" "$TAG")
           else
             COMMITS=$(git log --pretty=format:"- %s" "${PREV_TAG}..${TAG}")
           fi
 
-          # Write to file to preserve newlines
           echo "## What's Changed" > /tmp/changelog.md
           echo "$COMMITS" >> /tmp/changelog.md
           echo "" >> /tmp/changelog.md
@@ -87,14 +101,17 @@ jobs:
       - name: Sign Sparkle update
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
-          DMG_PATH: Build/${{ steps.dmg.outputs.dmg_name }}
         run: |
           if [ -n "$SPARKLE_PRIVATE_KEY" ]; then
             echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key
             SIGN_UPDATE="Vendor/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework/Versions/B/Resources/AutoUpdate"
             if [ -f "$SIGN_UPDATE" ]; then
-              DMG_SIG=$("$SIGN_UPDATE" -s /tmp/sparkle_key "$DMG_PATH" 2>/dev/null || true)
-              echo "dmg_signature=$DMG_SIG" >> "$GITHUB_OUTPUT"
+              TAG="${{ steps.version.outputs.tag }}"
+              for ARCH in arm64 x86_64 universal; do
+                DMG="Build/SnapX-${TAG}-${ARCH}.dmg"
+                SIG=$("$SIGN_UPDATE" -s /tmp/sparkle_key "$DMG" 2>/dev/null || true)
+                echo "dmg_sig_${ARCH}=$SIG" >> "$GITHUB_OUTPUT"
+              done
             fi
             rm -f /tmp/sparkle_key
           fi
@@ -105,7 +122,11 @@ jobs:
           name: SnapX ${{ steps.version.outputs.tag }}
           body_path: /tmp/changelog.md
           files: |
-            Build/${{ steps.dmg.outputs.dmg_name }}
-            Build/${{ steps.zip.outputs.zip_name }}
+            Build/SnapX-${{ steps.version.outputs.tag }}-arm64.dmg
+            Build/SnapX-${{ steps.version.outputs.tag }}-arm64.zip
+            Build/SnapX-${{ steps.version.outputs.tag }}-x86_64.dmg
+            Build/SnapX-${{ steps.version.outputs.tag }}-x86_64.zip
+            Build/SnapX-${{ steps.version.outputs.tag }}-universal.dmg
+            Build/SnapX-${{ steps.version.outputs.tag }}-universal.zip
           draft: false
           prerelease: false
