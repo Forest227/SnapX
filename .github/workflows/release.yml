@@ -98,23 +98,70 @@ jobs:
           echo "" >> /tmp/changelog.md
           echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG}" >> /tmp/changelog.md
 
-      - name: Sign Sparkle update
+      - name: Sign Sparkle and update appcast
+        id: sign
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
         run: |
+          TAG="${{ steps.version.outputs.tag }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          BUILD_NUM=$(echo "$VERSION" | awk -F. '{print $3}')
+          UNIVERSAL_DMG="Build/SnapX-${TAG}-universal.dmg"
+          DMG_SIZE=$(stat -f%z "$UNIVERSAL_DMG" 2>/dev/null || echo "0")
+          SIG="PLACEHOLDER_SIGNATURE"
+
           if [ -n "$SPARKLE_PRIVATE_KEY" ]; then
             echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key
             SIGN_UPDATE="Vendor/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework/Versions/B/Resources/AutoUpdate"
             if [ -f "$SIGN_UPDATE" ]; then
-              TAG="${{ steps.version.outputs.tag }}"
-              for ARCH in arm64 x86_64 universal; do
-                DMG="Build/SnapX-${TAG}-${ARCH}.dmg"
-                SIG=$("$SIGN_UPDATE" -s /tmp/sparkle_key "$DMG" 2>/dev/null || true)
-                echo "dmg_sig_${ARCH}=$SIG" >> "$GITHUB_OUTPUT"
-              done
+              RAW_SIG=$("$SIGN_UPDATE" -s /tmp/sparkle_key "$UNIVERSAL_DMG" 2>/dev/null || true)
+              EXTRACTED=$(echo "$RAW_SIG" | grep -o 'sparkle:edSignature="[^"]*"' | sed 's/sparkle:edSignature="//;s/"//' || true)
+              [ -n "$EXTRACTED" ] && SIG="$EXTRACTED"
             fi
             rm -f /tmp/sparkle_key
           fi
+
+          echo "signature=$SIG" >> "$GITHUB_OUTPUT"
+
+          # Update appcast.xml using Python
+          python3 -c "
+          import re
+          with open('docs/appcast.xml', 'r') as f:
+              content = f.read()
+
+          item = '''        <item>
+              <title>Version $VERSION</title>
+              <sparkle:version>$BUILD_NUM</sparkle:version>
+              <sparkle:shortVersionString>$VERSION</sparkle:shortVersionString>
+              <description><![CDATA[
+                  <h3>更新内容</h3>
+                  <ul>
+                      <li>详见 Release Notes</li>
+                  </ul>
+              ]]></description>
+              <pubDate>$(date -R)</pubDate>
+              <enclosure
+                  url=\"https://github.com/${{ github.repository }}/releases/download/$TAG/SnapX-$TAG-universal.dmg\"
+                  sparkle:edSignature=\"$SIG\"
+                  length=\"$DMG_SIZE\"
+                  type=\"application/octet-stream\"
+                  sparkle:minimumSystemVersion=\"13.0\"
+              />
+          </item>'''
+
+          content = content.replace('<channel>', '<channel>\n' + item, 1)
+          with open('docs/appcast.xml', 'w') as f:
+              f.write(content)
+          print('Appcast updated for $TAG')
+          "
+
+      - name: Push appcast update
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/appcast.xml
+          git diff --cached --quiet || git commit -m "docs: 更新 appcast.xml 添加 ${{ steps.version.outputs.tag }}"
+          git push origin main
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
