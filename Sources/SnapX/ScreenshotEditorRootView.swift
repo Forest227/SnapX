@@ -829,52 +829,34 @@ struct ScreenshotEditorRootView: View {
     // MARK: - Text Editor
 
     private func draftTextEditor(at origin: CGPoint) -> some View {
-        let maxWidth = min(360.0, currentImageRect.width - 24)
-        let textEditorHeight: CGFloat = max(36, CGFloat(draftText.components(separatedBy: "\n").count) * 22 + 16)
+        let fontSize = max(viewModel.textFontSize * currentDisplayScale, 14)
+        let lineHeight = fontSize * 1.35
+        let lineCount = max(draftText.components(separatedBy: "\n").count, 1)
+        let editorHeight = CGFloat(lineCount) * lineHeight + 4
+        let maxEditorWidth = currentImageRect.width - origin.x - 12
 
-        return TextEditor(text: $draftText)
-            .font(textFont)
-            .foregroundStyle(viewModel.selectedColor.swiftUIColor)
-            .scrollContentBackground(.hidden)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .frame(width: maxWidth, height: min(textEditorHeight, 200))
-            .background(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(Color.black.opacity(0.76))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .stroke(Color.white.opacity(0.18), lineWidth: 1)
-            )
-            .position(
-                x: min(max(origin.x, maxWidth / 2 + 12), currentImageRect.width - maxWidth / 2 - 12),
-                y: min(origin.y + min(textEditorHeight / 2, 100), currentImageRect.height - min(textEditorHeight / 2, 100) - 12)
-            )
-            .focused($isTextFieldFocused)
-            .onChange(of: isTextFieldFocused) { focused in
-                if !focused {
-                    commitTextDraftIfNeeded()
-                }
-            }
-    }
-
-    private var textFont: Font {
-        let weight: Font.Weight = viewModel.textIsBold ? .bold : .semibold
-        let design: Font.Design = .default
-
-        if viewModel.textIsItalic {
-            return Font.system(
-                size: max(viewModel.textFontSize * currentDisplayScale, 14),
-                weight: weight,
-                design: design
-            ).italic()
-        }
-
-        return Font.system(
-            size: max(viewModel.textFontSize * currentDisplayScale, 14),
-            weight: weight,
-            design: design
+        return InlineTextEditor(
+            text: $draftText,
+            fontSize: fontSize,
+            fontWeight: viewModel.textIsBold ? .bold : .regular,
+            isItalic: viewModel.textIsItalic,
+            isUnderline: viewModel.textIsUnderline,
+            textColor: NSColor(viewModel.selectedColor.swiftUIColor),
+            focused: isTextFieldFocused,
+            onCommit: { commitTextDraftIfNeeded() },
+            onEscape: { discardDraftText() }
+        )
+        .frame(
+            minWidth: 40,
+            idealWidth: min(300, maxEditorWidth),
+            maxWidth: maxEditorWidth,
+            minHeight: lineHeight,
+            idealHeight: editorHeight,
+            maxHeight: min(editorHeight, currentImageRect.height - origin.y - 12)
+        )
+        .position(
+            x: min(origin.x + min(150, maxEditorWidth / 2), currentImageRect.width - min(150, maxEditorWidth / 2) - 12),
+            y: min(origin.y + editorHeight / 2, currentImageRect.height - editorHeight / 2 - 12)
         )
     }
 
@@ -1121,5 +1103,174 @@ struct ScreenshotEditorRootView: View {
             }
             return false
         } || !draftMosaicPoints.isEmpty
+    }
+}
+
+// MARK: - Inline Text Editor (WeChat-style)
+
+private struct InlineTextEditor: NSViewRepresentable {
+    @Binding var text: String
+    var fontSize: CGFloat
+    var fontWeight: NSFont.Weight
+    var isItalic: Bool
+    var isUnderline: Bool
+    var textColor: NSColor
+    var focused: Bool
+    var onCommit: () -> Void
+    var onEscape: () -> Void
+
+    func makeNSView(context: Context) -> NSScrollView {
+        let scrollView = NSScrollView()
+        scrollView.drawsBackground = false
+        scrollView.hasVerticalScroller = false
+        scrollView.hasHorizontalScroller = false
+        scrollView.borderType = .noBorder
+        scrollView.autohidesScrollers = true
+
+        let textView = InlineTextView()
+        textView.delegate = context.coordinator
+        textView.drawsBackground = false
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.allowsUndo = true
+        textView.isRichText = false
+        textView.textContainerInset = NSSize(width: 0, height: 0)
+        textView.textContainer?.lineFragmentPadding = 0
+        textView.textContainer?.widthTracksTextView = false
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+
+        scrollView.documentView = textView
+
+        context.coordinator.textView = textView
+        context.coordinator.scrollView = scrollView
+
+        return scrollView
+    }
+
+    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+        guard let textView = scrollView.documentView as? NSTextView else { return }
+
+        let font = makeFont()
+        textView.font = font
+        textView.textColor = textColor
+
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = fontSize * 0.35
+        textView.defaultParagraphStyle = paragraphStyle
+
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: textColor,
+            .paragraphStyle: paragraphStyle,
+        ]
+        textView.typingAttributes = attrs
+
+        if textView.string != text {
+            textView.string = text
+        }
+
+        if focused && textView.window?.firstResponder != textView {
+            DispatchQueue.main.async {
+                textView.window?.makeFirstResponder(textView)
+            }
+        }
+
+        context.coordinator.updateTextSize()
+        context.coordinator.applyUnderlineIfNeeded()
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+
+    private func makeFont() -> NSFont {
+        var traits: NSFontDescriptor.SymbolicTraits = []
+        if isItalic { traits.insert(.italic) }
+
+        let descriptor = NSFont.systemFont(ofSize: fontSize, weight: fontWeight)
+            .fontDescriptor
+            .withSymbolicTraits(traits)
+
+        return NSFont(descriptor: descriptor, size: fontSize) ?? NSFont.systemFont(ofSize: fontSize, weight: fontWeight)
+    }
+
+    final class Coordinator: NSObject, NSTextViewDelegate {
+        var parent: InlineTextEditor
+        weak var textView: NSTextView?
+        weak var scrollView: NSScrollView?
+
+        init(_ parent: InlineTextEditor) {
+            self.parent = parent
+        }
+
+        func textDidChange(_ notification: Notification) {
+            guard let textView else { return }
+            parent.text = textView.string
+            updateTextSize()
+            applyUnderlineIfNeeded()
+        }
+
+        func textDidBeginEditing(_ notification: Notification) {
+            // Notify that the text view has focus
+        }
+
+        func textDidEndEditing(_ notification: Notification) {
+            parent.onCommit()
+        }
+
+        func textShouldEndEditing(_ textView: NSTextView) -> Bool {
+            return true
+        }
+
+        func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+            if commandSelector == #selector(NSResponder.insertNewline(_:)) {
+                if NSEvent.modifierFlags.contains(.shift) {
+                    return false // Shift+Enter = new line
+                }
+                parent.onCommit()
+                return true
+            }
+            if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+                parent.onEscape()
+                return true
+            }
+            return false
+        }
+
+        func updateTextSize() {
+            guard let textView, let scrollView else { return }
+            textView.sizeToFit()
+
+            let maxWidth = scrollView.frame.width > 0 ? scrollView.frame.width : 600
+            let textWidth = textView.frame.width
+            if textWidth > maxWidth {
+                textView.textContainer?.containerSize = NSSize(width: maxWidth, height: .greatestFiniteMagnitude)
+                textView.textContainer?.widthTracksTextView = true
+            }
+        }
+
+        func applyUnderlineIfNeeded() {
+            guard let textView, let textStorage = textView.textStorage else { return }
+            if parent.isUnderline {
+                let range = NSRange(location: 0, length: textStorage.length)
+                textStorage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: range)
+            }
+        }
+    }
+}
+
+private final class InlineTextView: NSTextView {
+    override var acceptsFirstResponder: Bool { true }
+
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        if result {
+            // Show cursor at end
+            if let end = textStorage?.length {
+                setSelectedRange(NSRange(location: end, length: 0))
+            }
+        }
+        return result
     }
 }
