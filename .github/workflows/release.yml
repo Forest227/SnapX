@@ -40,7 +40,7 @@ jobs:
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"
           # Use tag number as build number (v0.1.0 -> 10, v1.2.3 -> 123)
           TAG="${{ steps.version.outputs.tag }}"
-          BUILD_NUM=$(echo "${TAG#v}" | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
+          BUILD_NUM=$(echo "${TAG#v}" | awk -F. '{print $1 * 10000 + $2 * 100 + $3}')
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$PLIST"
           echo "build_num=$BUILD_NUM" >> "$GITHUB_OUTPUT"
 
