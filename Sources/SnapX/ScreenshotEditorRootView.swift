@@ -286,21 +286,12 @@ struct ScreenshotEditorRootView: View {
         HStack(spacing: 12) {
             HStack(spacing: 8) {
                 ForEach(ScreenshotEditorTool.allCases) { tool in
-                    if tool == .text {
-                        toolbarTextButton(
-                            title: "文字",
-                            isSelected: viewModel.activeTool == tool
-                        ) {
-                            switchTool(to: tool)
-                        }
-                    } else {
-                        toolbarButton(
-                            icon: tool.symbolName,
-                            title: tool.title,
-                            isSelected: viewModel.activeTool == tool
-                        ) {
-                            switchTool(to: tool)
-                        }
+                    toolbarButton(
+                        icon: tool.symbolName,
+                        title: tool.title,
+                        isSelected: viewModel.activeTool == tool
+                    ) {
+                        switchTool(to: tool)
                     }
                 }
             }
@@ -444,26 +435,6 @@ struct ScreenshotEditorRootView: View {
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
-        .help(title)
-    }
-
-    private func toolbarTextButton(
-        title: String,
-        isSelected: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.9))
-                .padding(.horizontal, 14)
-                .frame(height: 30)
-                .background(
-                    RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(buttonBackground(isSelected: isSelected, accent: false, isDisabled: false))
-                )
-        }
-        .buttonStyle(.plain)
         .help(title)
     }
 
