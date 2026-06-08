@@ -13,6 +13,25 @@
             <li>详见 Release Notes</li>
         </ul>
     ]]></description>
+    <pubDate>Mon, 08 Jun 2026 09:52:53 +0000</pubDate>
+    <enclosure
+        url="https://github.com/Forest227/SnapX/releases/download/v0.1.0/SnapX-v0.1.0-universal.dmg"
+        sparkle:edSignature="PLACEHOLDER_SIGNATURE"
+        length="2940694"
+        type="application/octet-stream"
+        sparkle:minimumSystemVersion="13.0"
+    />
+</item>
+        <item>
+    <title>Version 0.1.0</title>
+    <sparkle:version>0</sparkle:version>
+    <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+    <description><![CDATA[
+        <h3>更新内容</h3>
+        <ul>
+            <li>详见 Release Notes</li>
+        </ul>
+    ]]></description>
     <pubDate>Mon, 08 Jun 2026 09:46:09 +0000</pubDate>
     <enclosure
         url="https://github.com/Forest227/SnapX/releases/download/v0.1.0/SnapX-v0.1.0-universal.dmg"
