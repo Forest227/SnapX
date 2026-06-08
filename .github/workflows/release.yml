@@ -38,10 +38,9 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           PLIST="Packaging/SnapX-Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"
-          # Use tag number as build number (v0.1.0 -> 10)
+          # Use tag number as build number (v0.1.0 -> 10, v1.2.3 -> 123)
           TAG="${{ steps.version.outputs.tag }}"
-          BUILD_NUM="${TAG#v}"
-          BUILD_NUM=$(echo "$BUILD_NUM" | tr -d '.')
+          BUILD_NUM=$(echo "${TAG#v}" | awk -F. '{printf "%d%02d%02d", $1, $2, $3}')
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$PLIST"
           echo "build_num=$BUILD_NUM" >> "$GITHUB_OUTPUT"
 
