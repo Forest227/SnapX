@@ -26,10 +26,13 @@ final class ScreenshotEditorViewModel: ObservableObject {
         self.image = image
         self.cropInfo = cropInfo
         pixelatedPreviewImage = nil
-        nonisolated(unsafe) let capturedImage = image
-        Task.detached(priority: .userInitiated) {
-            let pixelated = ScreenshotEditorRenderer.makePixelatedPreviewImage(for: capturedImage)
-            await MainActor.run { [weak self] in
+        generatePixelatedPreview(for: image)
+    }
+
+    private nonisolated func generatePixelatedPreview(for image: NSImage) {
+        Task.detached(priority: .userInitiated) { [weak self] in
+            let pixelated = ScreenshotEditorRenderer.makePixelatedPreviewImage(for: image)
+            await MainActor.run {
                 self?.pixelatedPreviewImage = pixelated
             }
         }
@@ -73,13 +76,7 @@ final class ScreenshotEditorViewModel: ObservableObject {
         image = newImage
         pixelatedPreviewImage = nil
         annotations.removeAll()
-        nonisolated(unsafe) let capturedNewImage = newImage
-        Task.detached(priority: .userInitiated) {
-            let pixelated = ScreenshotEditorRenderer.makePixelatedPreviewImage(for: capturedNewImage)
-            await MainActor.run { [weak self] in
-                self?.pixelatedPreviewImage = pixelated
-            }
-        }
+        generatePixelatedPreview(for: newImage)
     }
 
     func showToast(_ message: String) {
