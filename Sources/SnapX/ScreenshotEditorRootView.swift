@@ -1,6 +1,12 @@
 import AppKit
 import SwiftUI
 
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
+    }
+}
+
 struct ScreenshotEditorRootView: View {
     private static let selectionFrameColor = Color(red: 0.2, green: 0.86, blue: 0.56)
 
@@ -29,6 +35,7 @@ struct ScreenshotEditorRootView: View {
     @State private var cropDragEdge: CropEdge?
     @State private var cropDragStart: CGPoint?
     @State private var cropOriginalRect: CGRect?
+    @State private var draggingTextIndex: Int?
 
     init(
         viewModel: ScreenshotEditorViewModel,
@@ -555,10 +562,35 @@ struct ScreenshotEditorRootView: View {
                     }
 
                 case .text:
-                    break
+                    if draftTextOrigin == nil, draggingTextIndex == nil {
+                        let tapPoint = displayPointToImagePoint(start)
+                        let hitRadius: CGFloat = 20 / currentDisplayScale
+                        if let (index, _) = findTextAnnotation(near: tapPoint, radius: hitRadius) {
+                            draggingTextIndex = index
+                        }
+                    }
+                    if let dragIndex = draggingTextIndex,
+                       case let .text(textAnnotation) = viewModel.annotations[safe: dragIndex] {
+                        let dx = displayPointToImagePoint(CGPoint(x: current.x - start.x, y: current.y - start.y))
+                        let newOrigin = CGPoint(x: textAnnotation.origin.x + dx.x, y: textAnnotation.origin.y + dx.y)
+                        viewModel.annotations[dragIndex] = .text(TextAnnotation(
+                            origin: newOrigin,
+                            text: textAnnotation.text,
+                            color: textAnnotation.color,
+                            fontSize: textAnnotation.fontSize,
+                            isBold: textAnnotation.isBold,
+                            isItalic: textAnnotation.isItalic,
+                            isUnderline: textAnnotation.isUnderline
+                        ))
+                    }
                 }
             }
             .onEnded { value in
+                if draggingTextIndex != nil {
+                    draggingTextIndex = nil
+                    return
+                }
+
                 let start = clampedDisplayPoint(for: value.startLocation)
                 let end = clampedDisplayPoint(for: value.location)
 
@@ -659,6 +691,25 @@ struct ScreenshotEditorRootView: View {
 
                 commitTextDraftIfNeeded()
 
+                // Check if tapping on an existing text annotation to re-edit
+                let tapPoint = displayPointToImagePoint(value.location)
+                let hitRadius: CGFloat = 20 / currentDisplayScale
+                if let (index, textAnnotation) = findTextAnnotation(near: tapPoint, radius: hitRadius) {
+                    viewModel.annotations.remove(at: index)
+                    viewModel.selectedColor = textAnnotation.color
+                    viewModel.textFontSize = textAnnotation.fontSize
+                    viewModel.textIsBold = textAnnotation.isBold
+                    viewModel.textIsItalic = textAnnotation.isItalic
+                    viewModel.textIsUnderline = textAnnotation.isUnderline
+                    draftTextOrigin = imagePointToDisplayPoint(textAnnotation.origin)
+                    draftText = textAnnotation.text
+                    viewModel.hasActiveTextDraft = true
+                    DispatchQueue.main.async {
+                        isTextFieldFocused = true
+                    }
+                    return
+                }
+
                 let origin = clampedTextOrigin(for: value.location)
                 draftTextOrigin = origin
                 draftText = ""
@@ -667,6 +718,22 @@ struct ScreenshotEditorRootView: View {
                     isTextFieldFocused = true
                 }
             }
+    }
+
+    private func findTextAnnotation(near point: CGPoint, radius: CGFloat) -> (Int, TextAnnotation)? {
+        for (index, annotation) in viewModel.annotations.enumerated().reversed() {
+            guard case let .text(textAnnotation) = annotation else { continue }
+            let origin = textAnnotation.origin
+            // Simple bounding box hit test
+            let textWidth = CGFloat(textAnnotation.text.count) * textAnnotation.fontSize * 0.6
+            let textHeight = textAnnotation.fontSize * 1.4
+            let rect = CGRect(x: origin.x, y: origin.y, width: textWidth, height: textHeight)
+            let expandedRect = rect.insetBy(dx: -radius, dy: -radius)
+            if expandedRect.contains(point) {
+                return (index, textAnnotation)
+            }
+        }
+        return nil
     }
 
     // MARK: - Annotation Drawing
@@ -791,13 +858,16 @@ struct ScreenshotEditorRootView: View {
     // MARK: - Text Editor
 
     private func draftTextEditor(at origin: CGPoint) -> some View {
-        TextField("输入文字", text: $draftText)
-            .textFieldStyle(.plain)
+        let maxWidth = min(360.0, currentImageRect.width - 24)
+        let textEditorHeight: CGFloat = max(36, CGFloat(draftText.components(separatedBy: "\n").count) * 22 + 16)
+
+        return TextEditor(text: $draftText)
             .font(textFont)
             .foregroundStyle(viewModel.selectedColor.swiftUIColor)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 8)
-            .frame(width: min(240, currentImageRect.width - 24), alignment: .leading)
+            .scrollContentBackground(.hidden)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .frame(width: maxWidth, height: min(textEditorHeight, 200))
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .fill(Color.black.opacity(0.76))
@@ -807,13 +877,10 @@ struct ScreenshotEditorRootView: View {
                     .stroke(Color.white.opacity(0.18), lineWidth: 1)
             )
             .position(
-                x: min(origin.x + 120, currentImageRect.width - 120),
-                y: min(origin.y + 18, currentImageRect.height - 18)
+                x: min(max(origin.x, maxWidth / 2 + 12), currentImageRect.width - maxWidth / 2 - 12),
+                y: min(origin.y + min(textEditorHeight / 2, 100), currentImageRect.height - min(textEditorHeight / 2, 100) - 12)
             )
             .focused($isTextFieldFocused)
-            .onSubmit {
-                commitTextDraftIfNeeded()
-            }
             .onChange(of: isTextFieldFocused) { focused in
                 if !focused {
                     commitTextDraftIfNeeded()
