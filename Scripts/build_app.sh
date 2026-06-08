@@ -27,6 +27,7 @@ if [[ ! -x "$ARM64_BIN" ]] || [[ ! -x "$X86_64_BIN" ]]; then
 fi
 
 # Create universal binary using lipo
+mkdir -p "$OUTPUT_DIR"
 UNIVERSAL_BIN="$OUTPUT_DIR/$APP_NAME-universal"
 lipo -create "$ARM64_BIN" "$X86_64_BIN" -output "$UNIVERSAL_BIN"
 
