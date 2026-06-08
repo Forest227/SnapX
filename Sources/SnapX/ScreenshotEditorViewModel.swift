@@ -26,8 +26,9 @@ final class ScreenshotEditorViewModel: ObservableObject {
         self.image = image
         self.cropInfo = cropInfo
         pixelatedPreviewImage = nil
+        let capturedImage = image
         Task.detached(priority: .userInitiated) {
-            let pixelated = ScreenshotEditorRenderer.makePixelatedPreviewImage(for: image)
+            let pixelated = ScreenshotEditorRenderer.makePixelatedPreviewImage(for: capturedImage)
             await MainActor.run { [weak self] in
                 self?.pixelatedPreviewImage = pixelated
             }
@@ -72,8 +73,9 @@ final class ScreenshotEditorViewModel: ObservableObject {
         image = newImage
         pixelatedPreviewImage = nil
         annotations.removeAll()
+        let capturedNewImage = newImage
         Task.detached(priority: .userInitiated) {
-            let pixelated = ScreenshotEditorRenderer.makePixelatedPreviewImage(for: newImage)
+            let pixelated = ScreenshotEditorRenderer.makePixelatedPreviewImage(for: capturedNewImage)
             await MainActor.run { [weak self] in
                 self?.pixelatedPreviewImage = pixelated
             }
