@@ -88,7 +88,17 @@ macOS 原生截图工具。截完图直接在原位编辑，支持标注、钉�
 
 ### 直接下载
 
-前往 [Releases](https://github.com/Forest227/SnapBoard/releases/latest) 下载 `SnapX-vX.X.X.dmg`，挂载后将 SnapX.app 拖入应用程序文件夹。
+前往 [Releases](https://github.com/Forest227/SnapX/releases/latest) 下载 `SnapX-vX.X.X.dmg`，挂载后将 SnapX.app 拖入应用程序文件夹。
+
+### 首次打开提示"无法打开"
+
+SnapX 使用自签名证书，macOS 会阻止首次运行。请在终端执行：
+
+```bash
+xattr -cr /Applications/SnapX.app
+```
+
+然后重新打开即可。也可以右键点击 SnapX.app → 选择"打开" → 在弹出对话框中点击"打开"。
 
 ### 从源码构建
 

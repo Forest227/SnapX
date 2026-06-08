@@ -52,6 +52,7 @@ jobs:
           mkdir -p dmg_staging
           cp -R Build/SnapX.app dmg_staging/
           ln -s /Applications dmg_staging/Applications
+          cp Packaging/DMG-README.txt dmg_staging/
           hdiutil create -volname "SnapX" \
             -srcfolder dmg_staging \
             -ov -format UDZO \
