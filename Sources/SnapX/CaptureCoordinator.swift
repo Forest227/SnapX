@@ -159,18 +159,18 @@ final class CaptureCoordinator {
         let screens = NSScreen.screens
         if captureTimingMode == .freezeFirst {
             for screen in screens {
-                guard let displayID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value,
-                      let cgImage = CGDisplayCreateImage(displayID) else {
+                guard screen.displayID != 0,
+                      let cgImage = CGDisplayCreateImage(screen.displayID) else {
                     continue
                 }
-                frozenScreenImages[displayID] = cgImage
+                frozenScreenImages[screen.displayID] = cgImage
             }
         }
 
         pushCrosshairCursor()
 
         overlayWindowControllers = screens.compactMap { screen in
-            let displayID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? 0
+            let displayID = screen.displayID
             let frozenImage = frozenScreenImages[displayID]
 
             let controller = SelectionOverlayWindowController(
@@ -276,7 +276,7 @@ final class CaptureCoordinator {
             let screens = NSScreen.screens
             let desktopTopEdge = screens.map(\.frame.maxY).max() ?? 0
             for screen in screens {
-                guard let displayID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value else {
+                guard screen.displayID != 0 else {
                     continue
                 }
                 let screenFrame = screen.frame
@@ -287,13 +287,13 @@ final class CaptureCoordinator {
                 let screenLocalBounds = CGRect(origin: .zero, size: screenFrame.size)
                 guard screenLocalBounds.intersects(localRect) else { continue }
 
-                let result = resolveFullScreenImage(displayID: displayID)
+                let result = resolveFullScreenImage(displayID: screen.displayID)
                 fullScreenImage = result.image
                 if let fullScreenImage {
                     cropInfo = ScreenshotEditorCropInfo(
                         fullScreenImage: fullScreenImage,
                         selectionRect: localRect,
-                        displayID: displayID,
+                        displayID: screen.displayID,
                         scaleFactor: screen.backingScaleFactor
                     )
                 }
@@ -314,7 +314,7 @@ final class CaptureCoordinator {
 
     private func resolveFullScreenImage(displayID: CGDirectDisplayID) -> (image: NSImage?, displayID: CGDirectDisplayID) {
         let matchingScreen = NSScreen.screens.first { s in
-            (s.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value == displayID
+            s.displayID == displayID
         }
         if let frozenCG = frozenScreenImages[displayID] {
             let screenSize = matchingScreen?.frame.size ?? CGSize(width: frozenCG.width, height: frozenCG.height)
@@ -410,11 +410,11 @@ final class CaptureCoordinator {
 
     private func globalRect(for selection: ScreenSelection) -> CGRect? {
         guard let screen = NSScreen.screens.first(where: { screen in
-            guard let screenID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value else {
+            guard screen.displayID != 0 else {
                 return false
             }
 
-            return screenID == selection.displayID
+            return screen.displayID == selection.displayID
         }) else {
             return nil
         }
@@ -550,8 +550,8 @@ enum ScreenshotCapturer {
         let windowBounds = selection.bounds
 
         for screen in NSScreen.screens {
-            guard let displayID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value,
-                  let fullImage = frozenImages[displayID] else {
+            guard screen.displayID != 0,
+                  let fullImage = frozenImages[screen.displayID] else {
                 continue
             }
 

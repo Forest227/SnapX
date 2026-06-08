@@ -7,6 +7,12 @@ macOS 原生截图工具。截完图直接在原位编辑，支持标注、钉�
 ![License](https://img.shields.io/github/license/Forest227/SnapBoard)
 ![Release](https://img.shields.io/github/v/release/Forest227/SnapBoard)
 
+## 平台状态
+
+- 当前可运行版本：**macOS 13+**
+- Windows 适配：已新增 Windows 工程骨架，说明见 [Windows/README.md](Windows/README.md)，迁移路线见 [docs/WINDOWS_PORTING.md](docs/WINDOWS_PORTING.md)
+- 计划目标：**Windows x86 / x64 / ARM64**
+
 ## 功能一览
 
 ### 截图
@@ -123,6 +129,14 @@ Sources/SnapX/
 ```
 
 零外部依赖，仅使用 Apple 原生框架（AppKit、CoreGraphics、Vision、Carbon）。
+
+如果要持续推进 Windows 适配，可以先运行：
+
+```bash
+python3 Scripts/audit_platform_dependencies.py
+```
+
+它会列出当前哪些源码文件仍强绑定 macOS 框架和 API。
 
 ## 许可
 

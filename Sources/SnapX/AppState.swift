@@ -35,6 +35,7 @@ final class AppState: ObservableObject {
     }
 
     var dismissStatusPanel: (() -> Void)?
+    let updater = AppUpdater()
 
     private let captureCoordinator = CaptureCoordinator()
     private var hotKeyMonitors: [GlobalHotKeyMonitor] = []

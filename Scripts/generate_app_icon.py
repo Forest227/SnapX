@@ -40,7 +40,14 @@ def build_icon(size: int) -> Image.Image:
     draw_glass_card(base, scale)
     draw_crosshair(base, scale)
     draw_crop_marks(base, scale)
+
     mask = rounded_mask(rs, CORNER_RADIUS * scale)
+
+    # Fill corners with the background gradient color before applying the mask.
+    # This prevents white fringe when macOS composites the icon against light backgrounds.
+    bg_fill = make_background(rs)
+    base.paste(bg_fill, mask=invert_mask(mask))
+
     base.putalpha(mask)
     return base.resize((size, size), Image.Resampling.LANCZOS)
 
@@ -231,6 +238,10 @@ def rounded_mask(size: int, radius: int) -> Image.Image:
         (0, 0, size, size), radius=radius, fill=255
     )
     return mask
+
+
+def invert_mask(mask: Image.Image) -> Image.Image:
+    return Image.eval(mask, lambda v: 255 - v)
 
 
 def lerp(a: float, b: float, t: float) -> float:

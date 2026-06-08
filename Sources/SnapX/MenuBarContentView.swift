@@ -133,6 +133,13 @@ struct MenuBarContentView: View {
             }
             .buttonStyle(.borderless)
 
+            Button(action: appState.updater.checkForUpdates) {
+                Label("检查更新", systemImage: "arrow.down.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderless)
+            .disabled(!appState.updater.canCheckForUpdates)
+
             Button(action: appState.restart) {
                 Label("重启 SnapX", systemImage: "arrow.clockwise.circle")
                     .frame(maxWidth: .infinity)
@@ -208,8 +215,18 @@ struct MenuBarContentView: View {
     }
 
     private var footer: some View {
-        Text("当前钉图 \(appState.pinnedCount) 张")
-            .font(.system(size: 12.5, weight: .semibold))
+        HStack {
+            Text("当前钉图 \(appState.pinnedCount) 张")
+                .font(.system(size: 12.5, weight: .semibold))
+            Spacer()
+            Text("v\(appVersion)")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var appVersion: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
     }
 
     private var allPermissionsGranted: Bool {

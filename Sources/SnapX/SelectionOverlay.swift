@@ -541,12 +541,12 @@ private final class SelectionOverlayCanvasView: NSView {
     }
 
     private func makeScreenSelection(with rect: CGRect) -> ScreenSelection? {
-        guard let displayID = (screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value else {
+        guard screen.displayID != 0 else {
             return nil
         }
 
         return ScreenSelection(
-            displayID: displayID,
+            displayID: screen.displayID,
             rect: rect,
             scaleFactor: screen.backingScaleFactor
         )

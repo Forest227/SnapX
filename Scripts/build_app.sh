@@ -23,7 +23,7 @@ if [[ ! -x "$EXECUTABLE_PATH" ]]; then
 fi
 
 rm -rf "$APP_BUNDLE"
-mkdir -p "$MACOS_DIR" "$RESOURCES_DIR"
+mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$CONTENTS_DIR/Frameworks"
 
 cp "$EXECUTABLE_PATH" "$MACOS_DIR/$APP_NAME"
 cp "$INFO_PLIST_TEMPLATE" "$CONTENTS_DIR/Info.plist"
@@ -33,6 +33,13 @@ fi
 for wav in "$PROJECT_ROOT/Packaging/"*.wav; do
   [[ -f "$wav" ]] && cp "$wav" "$RESOURCES_DIR/"
 done
+
+# Embed Sparkle framework
+SPARKLE_FRAMEWORK="$PROJECT_ROOT/Vendor/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
+if [[ -d "$SPARKLE_FRAMEWORK" ]]; then
+  cp -R "$SPARKLE_FRAMEWORK" "$CONTENTS_DIR/Frameworks/"
+fi
+
 chmod +x "$MACOS_DIR/$APP_NAME"
 
 SIGN_IDENTITY="SnapX Dev"
@@ -42,9 +49,5 @@ else
   codesign --force --sign - "$APP_BUNDLE" >/dev/null
 fi
 codesign --verify --deep --strict "$APP_BUNDLE"
-
-# Reset screen capture TCC entry so macOS re-prompts on first launch
-# (avoids stale CDHash causing silent permission denial)
-tccutil reset ScreenCapture com.wuqicheng.snapboard 2>/dev/null || true
 
 echo "$APP_BUNDLE"
