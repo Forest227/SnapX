@@ -13,19 +13,27 @@ RESOURCES_DIR="$CONTENTS_DIR/Resources"
 INFO_PLIST_TEMPLATE="$PROJECT_ROOT/Packaging/$APP_NAME-Info.plist"
 APP_ICON="$PROJECT_ROOT/Packaging/AppIcon.icns"
 
-swift build -c release --package-path "$PROJECT_ROOT" >/dev/null
-BIN_DIR="$(swift build -c release --show-bin-path --package-path "$PROJECT_ROOT")"
-EXECUTABLE_PATH="$BIN_DIR/$APP_NAME"
+# Build for both architectures
+swift build -c release --package-path "$PROJECT_ROOT" --arch arm64 >/dev/null
+swift build -c release --package-path "$PROJECT_ROOT" --arch x86_64 >/dev/null
 
-if [[ ! -x "$EXECUTABLE_PATH" ]]; then
-  echo "error: missing executable at $EXECUTABLE_PATH" >&2
+# Get binary paths for each architecture
+ARM64_BIN="$(swift build -c release --show-bin-path --package-path "$PROJECT_ROOT" --arch arm64)/$APP_NAME"
+X86_64_BIN="$(swift build -c release --show-bin-path --package-path "$PROJECT_ROOT" --arch x86_64)/$APP_NAME"
+
+if [[ ! -x "$ARM64_BIN" ]] || [[ ! -x "$X86_64_BIN" ]]; then
+  echo "error: missing executable" >&2
   exit 1
 fi
+
+# Create universal binary using lipo
+UNIVERSAL_BIN="$OUTPUT_DIR/$APP_NAME-universal"
+lipo -create "$ARM64_BIN" "$X86_64_BIN" -output "$UNIVERSAL_BIN"
 
 rm -rf "$APP_BUNDLE"
 mkdir -p "$MACOS_DIR" "$RESOURCES_DIR" "$CONTENTS_DIR/Frameworks"
 
-cp "$EXECUTABLE_PATH" "$MACOS_DIR/$APP_NAME"
+cp "$UNIVERSAL_BIN" "$MACOS_DIR/$APP_NAME"
 cp "$INFO_PLIST_TEMPLATE" "$CONTENTS_DIR/Info.plist"
 if [[ -f "$APP_ICON" ]]; then
   cp "$APP_ICON" "$RESOURCES_DIR/AppIcon.icns"

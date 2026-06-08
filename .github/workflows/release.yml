@@ -40,10 +40,7 @@ jobs:
           BUILD_NUM=$(echo "$VERSION" | awk -F. '{print $3}')
           /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUM:-1}" "$PLIST"
 
-      - name: Build release binary
-        run: swift build -c release
-
-      - name: Package .app bundle
+      - name: Build and package .app bundle (Universal Binary)
         run: bash Scripts/build_app.sh
 
       - name: Create DMG
