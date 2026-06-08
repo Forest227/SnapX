@@ -8,6 +8,31 @@
         <description>Most recent changes with links to updates.</description>
         <language>zh</language>
         <item>
+            <title>Version 0.0.8</title>
+            <sparkle:version>8</sparkle:version>
+            <sparkle:shortVersionString>0.0.8</sparkle:shortVersionString>
+            <description><![CDATA[
+                <h3>更新内容</h3>
+                <ul>
+                    <li>集成 Sparkle 检查更新功能</li>
+                    <li>拆分截图编辑器为多个模块，优化代码结构</li>
+                    <li>修复 App 图标圆角白边问题</li>
+                    <li>修复标注阶段双击+文字工具数据丢失</li>
+                    <li>修复 Esc 在文字编辑中直接关闭编辑器</li>
+                    <li>修复高亮草稿描边与最终渲染不一致</li>
+                    <li>移除打包时重置屏幕录制权限的逻辑</li>
+                </ul>
+            ]]></description>
+            <pubDate>Sat, 07 Jun 2026 18:00:00 +0800</pubDate>
+            <enclosure
+                url="https://github.com/Forest227/SnapX/releases/download/v0.0.8/SnapX-v0.0.8.dmg"
+                sparkle:edSignature="319AJr2BTs/I2C9CoQH72Vb55YPZqtkSHB2xJw6KUPSxqx74ZlLuKnjq/X6O+AiNXGUba93jBgr8IvF9g+hJAg=="
+                length="2549676"
+                type="application/octet-stream"
+                sparkle:minimumSystemVersion="13.0"
+            />
+        </item>
+        <item>
             <title>Version 0.0.7</title>
             <sparkle:version>7</sparkle:version>
             <sparkle:shortVersionString>0.0.7</sparkle:shortVersionString>
@@ -17,7 +42,7 @@
                     <li>优化截图编辑与忽略生成文件</li>
                 </ul>
             ]]></description>
-            <pubDate>Sat, 07 Jun 2026 12:00:00 +0800</pubDate>
+            <pubDate>Fri, 06 Jun 2026 12:00:00 +0800</pubDate>
             <enclosure
                 url="https://github.com/Forest227/SnapX/releases/download/v0.0.7/SnapX-v0.0.7.dmg"
                 sparkle:edSignature="PLACEHOLDER_SIGNATURE"
