@@ -30,8 +30,9 @@ final class ScreenshotEditorViewModel: ObservableObject {
     }
 
     private nonisolated func generatePixelatedPreview(for image: NSImage) {
-        Task.detached(priority: .userInitiated) { [weak self] in
-            let pixelated = ScreenshotEditorRenderer.makePixelatedPreviewImage(for: image)
+        let renderer = ScreenshotEditorRenderer.self
+        Task.detached(priority: .userInitiated) { @Sendable [weak self] in
+            let pixelated = renderer.makePixelatedPreviewImage(for: image)
             await MainActor.run {
                 self?.pixelatedPreviewImage = pixelated
             }
