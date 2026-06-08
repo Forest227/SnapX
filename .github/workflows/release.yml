@@ -33,12 +33,17 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Update Info.plist version
+        id: plist
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           PLIST="Packaging/SnapX-Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$PLIST"
-          BUILD_NUM=$(echo "$VERSION" | awk -F. '{print $3}')
-          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${BUILD_NUM:-1}" "$PLIST"
+          # Use tag number as build number (v0.1.0 -> 10)
+          TAG="${{ steps.version.outputs.tag }}"
+          BUILD_NUM="${TAG#v}"
+          BUILD_NUM=$(echo "$BUILD_NUM" | tr -d '.')
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $BUILD_NUM" "$PLIST"
+          echo "build_num=$BUILD_NUM" >> "$GITHUB_OUTPUT"
 
       - name: Build arm64
         run: bash Scripts/build_app.sh arm64
@@ -105,7 +110,7 @@ jobs:
         run: |
           TAG="${{ steps.version.outputs.tag }}"
           VERSION="${{ steps.version.outputs.version }}"
-          BUILD_NUM=$(/usr/libexec/PlistBuddy -c "Print :CFBundleVersion" Packaging/SnapX-Info.plist)
+          BUILD_NUM="${{ steps.plist.outputs.build_num }}"
           UNIVERSAL_DMG="Build/SnapX-${TAG}-universal.dmg"
           DMG_SIZE=$(stat -f%z "$UNIVERSAL_DMG" 2>/dev/null || echo "0")
           SIG="PLACEHOLDER_SIGNATURE"
@@ -128,6 +133,10 @@ jobs:
           import re
           with open('docs/appcast.xml', 'r') as f:
               content = f.read()
+
+          # Remove existing entry for this version if any
+          pattern = r'<item>\\s*<title>Version $VERSION</title>.*?</item>'
+          content = re.sub(pattern, '', content, flags=re.DOTALL)
 
           item = '''        <item>
               <title>Version $VERSION</title>
