@@ -82,9 +82,7 @@ jobs:
           fi
 
           # Write to file to preserve newlines
-          cat > /tmp/changelog.md << 'HEADER'
-          ## What's Changed
-          HEADER
+          echo "## What's Changed" > /tmp/changelog.md
           echo "$COMMITS" >> /tmp/changelog.md
           echo "" >> /tmp/changelog.md
           echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${TAG}" >> /tmp/changelog.md
@@ -92,16 +90,13 @@ jobs:
       - name: Sign Sparkle update
         env:
           SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+          DMG_PATH: Build/${{ steps.dmg.outputs.dmg_name }}
         run: |
           if [ -n "$SPARKLE_PRIVATE_KEY" ]; then
             echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key
             SIGN_UPDATE="Vendor/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework/Versions/B/Resources/AutoUpdate"
             if [ -f "$SIGN_UPDATE" ]; then
-              DMG_SIG=$(python3 -c "
-import subprocess, json
-result = subprocess.run(['$SIGN_UPDATE', '-s', '/tmp/sparkle_key', 'Build/${{ steps.dmg.outputs.dmg_name }}'], capture_output=True, text=True)
-print(result.stdout)
-" 2>/dev/null || true)
+              DMG_SIG=$("$SIGN_UPDATE" -s /tmp/sparkle_key "$DMG_PATH" 2>/dev/null || true)
               echo "dmg_signature=$DMG_SIG" >> "$GITHUB_OUTPUT"
             fi
             rm -f /tmp/sparkle_key
