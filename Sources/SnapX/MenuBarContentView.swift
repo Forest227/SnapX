@@ -140,6 +140,12 @@ struct MenuBarContentView: View {
             .buttonStyle(.borderless)
             .disabled(!appState.updater.canCheckForUpdates)
 
+            Button(action: openGitHubReleases) {
+                Label("GitHub 发布页", systemImage: "arrow.up.right.square")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderless)
+
             Button(action: appState.restart) {
                 Label("重启 SnapX", systemImage: "arrow.clockwise.circle")
                     .frame(maxWidth: .infinity)
@@ -231,6 +237,12 @@ struct MenuBarContentView: View {
 
     private var allPermissionsGranted: Bool {
         appState.permissionStatus == .granted && appState.isAccessibilityPermissionGranted
+    }
+
+    private func openGitHubReleases() {
+        if let url = URL(string: "https://github.com/Forest227/SnapX/releases/latest") {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private func permissionStatusRow(title: String, isGranted: Bool, grantedDetail: String, missingDetail: String) -> some View {
